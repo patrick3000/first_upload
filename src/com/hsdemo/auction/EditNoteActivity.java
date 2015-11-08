@@ -67,8 +67,6 @@ public class EditNoteActivity extends ActionBarActivity {
     @InjectView(R.id.base_tint_darken)
     View tint;
 
-    @InjectView(R.id.mainprogress)
-    ProgressBar progress;
 
     Handler handler = new Handler();
 
@@ -113,7 +111,7 @@ public class EditNoteActivity extends ActionBarActivity {
         setContentView(R.layout.main2);
         ButterKnife.inject(this);
 
-        progress.setVisibility(View.VISIBLE);
+        //progress.setVisibility(View.VISIBLE);
 
         setSupportActionBar(toolbar);
         toolbar.setTitleTextAppearance(this, R.style.basefont_light);
