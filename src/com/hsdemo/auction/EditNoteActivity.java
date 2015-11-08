@@ -54,8 +54,7 @@ import de.greenrobot.event.EventBus;
 
 public class EditNoteActivity extends ActionBarActivity {
 
-    @InjectView(R.id.itemslist)
-    ListView itemsList;
+
 
     List<AuctionItem> allItems = new ArrayList<AuctionItem>();
     BaseAdapter adapter;
@@ -111,7 +110,7 @@ public class EditNoteActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         DisplayUtils.init(this);
 
-        setContentView(R.layout.main);
+        setContentView(R.layout.main2);
         ButterKnife.inject(this);
 
         progress.setVisibility(View.VISIBLE);
@@ -138,19 +137,6 @@ public class EditNoteActivity extends ActionBarActivity {
     }
 
 
-/*
-  ParseQuery<mrtest> query = ParseQuery.getQuery("mrtest");
-  query.whereEqualTo("playerName", "Dan Stemkoski");
-  query.findInBackground(new FindCallback<ParseObject>() {
-    public void done(List<ParseObject> scoreList, ParseException e) {
-      if (e == null) {
-        Log.d("score", "Retrieved " + scoreList.size() + " scores");
-      } else {
-        Log.d("score", "Error: " + e.getMessage());
-      }
-    }
-  });
-  */
 
 
     //commenting on event causes system to crash
@@ -300,32 +286,5 @@ public class EditNoteActivity extends ActionBarActivity {
         mDrawerToggle.syncState();
     }
 
-    @Override
-    public void onStart() {
-        super.onStart();
-        EventBus.getDefault().register(this);
-    }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        data.beginBidCoverage(this);
-        PushReceiver.clearAll();
-
-        if (IdentityManager.getEmail(this).length() < 5) {
-            startActivity(new Intent(this, LoginActivity.class));
-        }
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        data.endBidCoverage();
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-        EventBus.getDefault().unregister(this);
-    }
 }
