@@ -140,18 +140,22 @@ public class EditNoteActivity extends ActionBarActivity {
 
 
     //commenting on event causes system to crash
+
     public void onEvent(BidsRefreshedEvent event) {
         Log.i("TEST", "Received refresh event");
+       /*
         if (isInitializing) {
             Log.i("TEST", "Init...");
             isInitializing = false;
            // setup();
         }
-
+        */
+/*
         if (!bidding) {
             allItems = data.getItemsMatchingQuery(listQuery, this);
             adapter.notifyDataSetChanged();
         }
+        */
     }
 
 //commenting setup does not crash system but stops data from loading
