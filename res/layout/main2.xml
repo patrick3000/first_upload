@@ -34,11 +34,7 @@
 
 
 
-        <ProgressBar
-            android:id="@+id/mainprogress"
-            android:layout_width="30dp"
-            android:layout_centerInParent="true"
-            android:layout_height="30dp"/>
+
 
         <Button
             android:layout_width="wrap_content"
