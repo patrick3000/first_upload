@@ -696,22 +696,56 @@ public class ItemListActivity extends ActionBarActivity {
     myItems.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
+
+        Toast.makeText(ItemListActivity.this,
+                "Your Message", Toast.LENGTH_LONG).show();
+        /*
         Intent listActivity = new Intent(ItemListActivity.this, ItemListActivity.class);
         listActivity.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         listActivity.putExtra("title", "My Items");
         listActivity.putExtra("query", DataManager.QUERY_MINE);
         startActivity(listActivity);
+        */
       }
     });
 
     noBids.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
+
+       // Toast.makeText(ItemListActivity.this,
+       //         "Your Message", Toast.LENGTH_LONG).show();
+
+        Intent intent = new Intent(ItemListActivity.this, EditNoteActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(intent);
+
+        //step 1 disable no bids
+        //step 2 examine code code in crud example by runnning it noticeing new note
+        //then noticing he used intent
+        //integrate intents.
+
+
+
+      //  Intent listActivity = new Intent(ItemListActivity.this, EditNoteActivity.class);
+      //  listActivity.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+       // listActivity.putExtra("title", "Items with No Bids");
+       // listActivity.putExtra("query", DataManager.QUERY_NOBIDS);
+      //  startActivity(listActivity);
+
+
+
+        /*
         Intent listActivity = new Intent(ItemListActivity.this, ItemListActivity.class);
         listActivity.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         listActivity.putExtra("title", "Items with No Bids");
         listActivity.putExtra("query", DataManager.QUERY_NOBIDS);
         startActivity(listActivity);
+        */
+        //step 1 disable bid option
+        //step2 make input screen appear when when no bid clicked on
+        //when inputting a new object in crud what class and xml is activated? investigate.
+
       }
     });
 

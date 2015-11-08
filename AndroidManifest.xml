@@ -25,8 +25,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+
+        <activity
+            android:name="com.hsdemo.auction.EditNoteActivity"
+            android:windowSoftInputMode="adjustPan"
+            android:label="Auction" >
+
+        </activity>
+
+
+
+
         <activity android:name="com.hsdemo.auction.ItemListActivity"
-                  android:windowSoftInputMode="adjustPan"/>
+            android:windowSoftInputMode="adjustPan"/>
 
         <service android:name="com.parse.PushService" />
         <receiver android:name="com.parse.ParseBroadcastReceiver">
@@ -36,7 +48,7 @@
             </intent-filter>
         </receiver>
         <receiver android:name="com.parse.GcmBroadcastReceiver"
-                  android:permission="com.google.android.c2dm.permission.SEND">
+            android:permission="com.google.android.c2dm.permission.SEND">
             <intent-filter>
                 <action android:name="com.google.android.c2dm.intent.RECEIVE" />
                 <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
@@ -71,7 +83,7 @@
       to match your app's package name + ".permission.C2D_MESSAGE".
     -->
     <permission android:protectionLevel="signature"
-                android:name="com.hsdemo.auction.permission.C2D_MESSAGE" />
+        android:name="com.hsdemo.auction.permission.C2D_MESSAGE" />
     <uses-permission android:name="com.hsdemo.auction.permission.C2D_MESSAGE" />
 
 </manifest>

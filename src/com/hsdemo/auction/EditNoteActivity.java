@@ -1,238 +1,331 @@
 package com.hsdemo.auction;
 
-/**
- * Created by User on 11/2/2015.
- */
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.widget.CardView;
+import android.support.v7.widget.Toolbar;
+import android.text.Html;
+import android.text.InputType;
+import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.Window;
+import android.view.ViewGroup;
+import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.AnticipateOvershootInterpolator;
+import android.view.animation.OvershootInterpolator;
+import android.widget.AbsListView;
+import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import com.parse.DeleteCallback;
-import com.parse.GetCallback;
-import com.parse.ParseException;
+import com.android.volley.toolbox.NetworkImageView;
+import com.hsdemo.auction.api.BiddingClient;
+import com.hsdemo.auction.api.DataManager;
+import com.hsdemo.auction.events.BidsRefreshedEvent;
+import com.hsdemo.auction.models.AuctionItem;
+import com.parse.FindCallback;
+import com.parse.Parse;
 import com.parse.ParseObject;
 import com.parse.ParseQuery;
-import com.parse.ParseUser;
-import com.parse.SaveCallback;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import butterknife.ButterKnife;
+import butterknife.InjectView;
+import de.greenrobot.event.EventBus;
 
 public class EditNoteActivity extends ActionBarActivity {
 
-    private Note note;
-    private EditText titleEditText;
-    private EditText contentEditText;
-    private String postTitle;
-    private String postContent;
-    private Button saveNoteButton;
+    @InjectView(R.id.itemslist)
+    ListView itemsList;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    List<AuctionItem> allItems = new ArrayList<AuctionItem>();
+    BaseAdapter adapter;
+
+    boolean gotFirstBids;
+
+    @InjectView(R.id.toolbar)
+    Toolbar toolbar;
+
+    @InjectView(R.id.base_tint_darken)
+    View tint;
+
+    @InjectView(R.id.mainprogress)
+    ProgressBar progress;
+
+    Handler handler = new Handler();
+
+    DataManager data = DataManager.getInstance();
+    boolean isInitializing = true;
+    boolean bidding = false;
+    boolean cardsUntouched = true;
+
+    @InjectView(R.id.drawer_layout)
+    DrawerLayout mDrawerLayout;
+    ActionBarDrawerToggle mDrawerToggle;
+
+    @InjectView(R.id.left_drawer)
+    View drawer;
+
+    @InjectView(R.id.menu_all)
+    View all;
+
+    @InjectView(R.id.menu_nobids)
+    View noBids;
+    //////
+
+    @InjectView(R.id.menu_myitems)
+    View myItems;
+
+    // @InjectView(R.id.add_item)
+    // View myItems;
+
+    @InjectView(R.id.menu_logout)
+    View logout;
+
+    @InjectView(R.id.menu_email)
+    TextView userEmail;
+
+    String listQuery = DataManager.QUERY_ALL;
+
+    /** Called when the activity is first created. */
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
-        getActionBar().setDisplayHomeAsUpEnabled(true);
-        setContentView(R.layout.activity_edit_note);
+        DisplayUtils.init(this);
 
-        Intent intent = this.getIntent();
+        setContentView(R.layout.main);
+        ButterKnife.inject(this);
 
-        titleEditText = (EditText) findViewById(R.id.noteTitle);
-        contentEditText = (EditText) findViewById(R.id.noteContent);
+        progress.setVisibility(View.VISIBLE);
 
-        if (intent.getExtras() != null) {
-            note = new Note(intent.getStringExtra("noteId"), intent.getStringExtra("noteTitle"), intent.getStringExtra("noteContent"));
+        setSupportActionBar(toolbar);
+        toolbar.setTitleTextAppearance(this, R.style.basefont_light);
+        toolbar.setTitleTextColor(getResources().getColor(R.color.white));
+        tint.setVisibility(View.VISIBLE);
 
-            titleEditText.setText(note.getTitle());
-            contentEditText.setText(note.getContent());
+        getSupportActionBar().setTitle("All Items");
+
+        Bundle extras = getIntent().getExtras();
+        if (extras != null) {
+            if (extras.containsKey("title"))
+                getSupportActionBar().setTitle(extras.getString("title"));
+
+            if (extras.containsKey("query"))
+                listQuery = extras.getString("query");
         }
 
-        saveNoteButton = (Button)findViewById(R.id.saveNote);
-        saveNoteButton.setOnClickListener(new View.OnClickListener() {
+       setupDrawer();
+        //commenting setup menu breaks drawer list
+       setupMenu();
+    }
+
+
+/*
+  ParseQuery<mrtest> query = ParseQuery.getQuery("mrtest");
+  query.whereEqualTo("playerName", "Dan Stemkoski");
+  query.findInBackground(new FindCallback<ParseObject>() {
+    public void done(List<ParseObject> scoreList, ParseException e) {
+      if (e == null) {
+        Log.d("score", "Retrieved " + scoreList.size() + " scores");
+      } else {
+        Log.d("score", "Error: " + e.getMessage());
+      }
+    }
+  });
+  */
+
+
+    //commenting on event causes system to crash
+    public void onEvent(BidsRefreshedEvent event) {
+        Log.i("TEST", "Received refresh event");
+        if (isInitializing) {
+            Log.i("TEST", "Init...");
+            isInitializing = false;
+           // setup();
+        }
+
+        if (!bidding) {
+            allItems = data.getItemsMatchingQuery(listQuery, this);
+            adapter.notifyDataSetChanged();
+        }
+    }
+
+//commenting setup does not crash system but stops data from loading
+
+    public void setupDrawer() {
+        // ActionBarDrawerToggle is responsible for the menu indicator next to the icon, as well as making
+        // the logo area open the drawer
+        mDrawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout, (Toolbar) findViewById(R.id.toolbar), R.string.app_name, R.string.app_name) {
+            @Override
+            public void onDrawerClosed(View view) {}
+
+            @Override
+            public void onDrawerOpened(View drawerView) {}
+
+            @Override
+            public void onDrawerSlide(View v, float amt) {
+                super.onDrawerSlide(v, amt);
+            }
+        };
+
+        mDrawerLayout.setDrawerListener(mDrawerToggle);}
+
+    public void setupMenu() {
+        userEmail.setText(IdentityManager.getEmail(this));
+
+        all.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                saveNote();
+                Intent listActivity = new Intent(EditNoteActivity.this, ItemListActivity.class);
+                listActivity.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                listActivity.putExtra("title", "All Items");
+                listActivity.putExtra("query", DataManager.QUERY_ALL);
+                startActivity(listActivity);
             }
         });
 
+        myItems.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                Toast.makeText(EditNoteActivity.this,
+                        "this is the edit note activity", Toast.LENGTH_LONG).show();
+        /*
+        Intent listActivity = new Intent(ItemListActivity.this, ItemListActivity.class);
+        listActivity.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        listActivity.putExtra("title", "My Items");
+        listActivity.putExtra("query", DataManager.QUERY_MINE);
+        startActivity(listActivity);
+        */
+            }
+        });
+
+        noBids.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                // Toast.makeText(ItemListActivity.this,
+                //         "Your Message", Toast.LENGTH_LONG).show();
+
+                Intent intent = new Intent(EditNoteActivity.this, EditNoteActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+
+                //step 1 disable no bids
+                //step 2 examine code code in crud example by runnning it noticeing new note
+                //then noticing he used intent
+                //integrate intents.
+
+
+
+                Intent listActivity = new Intent(EditNoteActivity.this, EditNoteActivity.class);
+                //  listActivity.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                // listActivity.putExtra("title", "Items with No Bids");
+                // listActivity.putExtra("query", DataManager.QUERY_NOBIDS);
+                startActivity(listActivity);
+
+
+
+        /*
+        Intent listActivity = new Intent(ItemListActivity.this, ItemListActivity.class);
+        listActivity.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        listActivity.putExtra("title", "Items with No Bids");
+        listActivity.putExtra("query", DataManager.QUERY_NOBIDS);
+        startActivity(listActivity);
+        */
+                //step 1 disable bid option
+                //step2 make input screen appear when when no bid clicked on
+                //when inputting a new object in crud what class and xml is activated? investigate.
+
+            }
+        });
+
+        logout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                AlertDialog dialog;
+                AlertDialog.Builder alert = new AlertDialog.Builder(EditNoteActivity.this);
+
+                alert.setTitle("Log Out");
+                alert.setMessage("You sure?");
+
+                alert.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        IdentityManager.setEmail("", EditNoteActivity.this);
+                        IdentityManager.setName("", EditNoteActivity.this);
+                        finish();
+                    }
+                });
+
+                alert.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+
+                    }
+                });
+
+                dialog = alert.show();
+            }
+        });
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.edit_note, menu);
-        return true;
+        getMenuInflater().inflate(R.menu.mainmenu, menu);
+        return super.onCreateOptionsMenu(menu);
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
+    protected void onPostCreate(Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+        mDrawerToggle.syncState();
     }
 
-    private void saveNote() {
+    @Override
+    public void onStart() {
+        super.onStart();
+        EventBus.getDefault().register(this);
+    }
 
-        postTitle = titleEditText.getText().toString();
-        postContent = contentEditText.getText().toString();
+    @Override
+    public void onResume() {
+        super.onResume();
+        data.beginBidCoverage(this);
+        PushReceiver.clearAll();
 
-        postTitle = postTitle.trim();
-        postContent = postContent.trim();
-
-        // If user doesn't enter a title or content, do nothing
-        // If user enters title, but no content, save
-        // If user enters content with no title, give warning
-        // If user enters both title and content, save
-
-        if (!postTitle.isEmpty()) {
-
-            // Check if post is being created or edited
-
-            if (note == null) {
-                // create new post
-
-                final ParseObject post = new ParseObject("Post");
-                post.put("title", postTitle);
-                post.put("content", postContent);
-                post.put("author", ParseUser.getCurrentUser());
-                setProgressBarIndeterminateVisibility(true);
-                post.saveInBackground(new SaveCallback() {
-                    public void done(ParseException e) {
-                        setProgressBarIndeterminateVisibility(false);
-                        if (e == null) {
-                            // Saved successfully.
-                            note = new Note(post.getObjectId(), postTitle, postContent);
-                            Toast.makeText(getApplicationContext(), "Saved", Toast.LENGTH_SHORT).show();
-                        } else {
-                            // The save failed.
-                            Toast.makeText(getApplicationContext(), "Failed to Save", Toast.LENGTH_SHORT).show();
-                            Log.d(getClass().getSimpleName(), "User update error: " + e);
-                        }
-                    }
-                });
-
-            }
-            else {
-
-
-                // update post
-                //delete method url
-                //http://stackoverflow.com/questions/28564162/delete-a-row-from-parse-table
-				/*
-				ParseObject favtagobject = new ParseObject("post");
-				favtagobject.put("title","mr");
-				favtagobject.put("author", ParseUser.getCurrentUser());
-				favtagobject.deleteInBackground(new DeleteCallback() {
-					public void done(ParseException e) {
-						if (e == null) {
-							Toast.makeText(getApplicationContext(), "deleted.", Toast.LENGTH_SHORT).show();
-							//Toast.makeText(activity,
-								//	"  deleted",
-								//	Toast.LENGTH_SHORT).show();
-						} else {
-							Toast.makeText(getApplicationContext(), "not deleted.", Toast.LENGTH_SHORT).show();
-						//	Toast.makeText(activity,
-								//	e + "  not deleted",
-								//	Toast.LENGTH_LONG).show();
-							e.printStackTrace();
-							Log.d("", e + "");
-						}
-					}
-				});
-
-                  */
-
-
-                ParseQuery<ParseObject> query = ParseQuery
-                        .getQuery("Post");
-                //String obID = imgData.get(x).objectID;  // Table name and object id are correctly retreived
-                //query.whereEqualTo("objectId", obID);
-
-                //query.getFirstInBackground(new GetCallback<ParseObject>()
-                query.getInBackground(note.getId(), new GetCallback<ParseObject>() {
-
-                    @Override
-                    public void done(ParseObject obt, ParseException e) {
-                        if (e == null) {
-                            // Success
-                            // Parse.Cloud.useMasterKey();
-                            //	Toast.makeText(activity, "Post",
-                            //	Toast.LENGTH_SHORT).show();
-                            Toast.makeText(getApplicationContext(), "Show 1.", Toast.LENGTH_SHORT).show();
-                            obt.deleteInBackground(new DeleteCallback() {
-                                public void done(ParseException e) {
-                                    if (e == null) {
-                                        //	Toast.makeText(activity,
-                                        //"  deleted",
-                                        //Toast.LENGTH_SHORT).show();
-                                        Toast.makeText(getApplicationContext(), "deleted.", Toast.LENGTH_SHORT).show();
-                                    } else {
-                                        //Toast.makeText(activity,
-                                        //	e + "  not deleted",
-                                        //	Toast.LENGTH_LONG).show();
-                                        Toast.makeText(getApplicationContext(), "not deleted.", Toast.LENGTH_SHORT).show();
-                                        e.printStackTrace();
-                                        Log.d("", e + "");
-                                    }
-                                }
-                            });
-
-                        } else {
-                        }
-                    }
-                });
-
-                ///////////////////////////////////
-
-				/*
-				ParseQuery<ParseObject> query = ParseQuery.getQuery("Post");
-
-				// Retrieve the object by id
-				query.getInBackground(note.getId(), new GetCallback<ParseObject>() {
-				  public void done(ParseObject post, ParseException e) {
-				    if (e == null) {
-				      // Now let's update it with some new data.
-				    	post.put("title", postTitle);
-						post.put("content", postContent);
-						setProgressBarIndeterminateVisibility(true);
-						post.saveInBackground(new SaveCallback() {
-				            public void done(ParseException e) {
-				            	setProgressBarIndeterminateVisibility(false);
-				                if (e == null) {
-				                    // Saved successfully.
-				                	Toast.makeText(getApplicationContext(), "Saved", Toast.LENGTH_SHORT).show();
-				                } else {
-				                    // The save failed.
-				                	Toast.makeText(getApplicationContext(), "Failed to Save", Toast.LENGTH_SHORT).show();
-				                    Log.d(getClass().getSimpleName(), "User update error: " + e);
-				                }
-				            }
-				        });
-				    }
-				  }
-				});
-                */
-
-            }
+        if (IdentityManager.getEmail(this).length() < 5) {
+            startActivity(new Intent(this, LoginActivity.class));
         }
-        else if (postTitle.isEmpty() && !postContent.isEmpty()) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(EditNoteActivity.this);
-            builder.setMessage(R.string.edit_error_message)
-                    .setTitle(R.string.edit_error_title)
-                    .setPositiveButton(android.R.string.ok, null);
-            AlertDialog dialog = builder.create();
-            dialog.show();
-        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        data.endBidCoverage();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        EventBus.getDefault().unregister(this);
     }
 }
-
